@@ -65,15 +65,20 @@ class _Slice_wrap(object):
     def __exit__(self, *a):
         self.k._sliced_X -= 1
     def handle_return_array(self, return_val):
+        kernel_type_str = str(type(self.k))
+        if "GPy.kern.src.multidim_integral_kernel.Mix_Integral_" in kernel_type_str or "GPy.kern.src.multidim_integral_kernel_extend.Mix_Integral_extend" in kernel_type_str:
+            new_all_dims_active = self.k._all_dims_active[:-1:2]
+        else:
+            new_all_dims_active = self.k._all_dims_active
         if self.ret:
             ret = np.zeros(self.shape)
             if len(self.shape) == 2:
-                ret[:, self.k._all_dims_active] = return_val
+                ret[:, new_all_dims_active] = return_val
             elif len(self.shape) == 3: # derivative for X2!=None
                 if self.diag:
-                    ret.T[np.ix_(self.k._all_dims_active, self.k._all_dims_active)] = return_val.T
+                    ret.T[np.ix_(new_all_dims_active, new_all_dims_active)] = return_val.T
                 else:
-                    ret[:, :, self.k._all_dims_active] = return_val
+                    ret[:, :, new_all_dims_active] = return_val
             elif len(self.shape) == 4: # second order derivative
                 ret.T[np.ix_(self.k._all_dims_active, self.k._all_dims_active)] = return_val.T
             return ret
