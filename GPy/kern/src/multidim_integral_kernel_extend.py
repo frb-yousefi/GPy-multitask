@@ -155,57 +155,13 @@ class Mix_Integral_extend(Kern):
         """
         dL_dK_full = np.eye(X.shape[0], X.shape[0]) * dL_dKdiag
         self.update_gradients_full(dL_dK_full, X)
-
-    def dk_dz(self, input_type_1, input_type_2, t, tprime, s, sprime, lengthscale):
-        # here t stands for z and tprime stands for z' (latent inputs)
-        input_type_1 = int(input_type_1)
-        input_type_2 = int(input_type_2)
-        if (input_type_1 == 0) and (input_type_2 == 1):
-            return self.dkfu_dz(t, tprime, s, lengthscale) 
-        if (input_type_1 == 1) and (input_type_2 == 0):
-            return self.dkfu_dz(tprime, t, sprime, lengthscale) 
-        if (input_type_1 == 1) and (input_type_2 == 1):
-            return self.dkuu_dz(t, tprime, s, sprime, lengthscale) 
-        if (input_type_1 == 0) and (input_type_2 == 0):
-            #  It is derivative of kff/dz which is zero
-            return 0 
-        
-        raise Exception('KFU should have X and Z and KUU should have Z and Z!')
-    
-    def dkuu_dz(self, t, tprime, s, sprime, lengthscale):
-        l = lengthscale
-        return -2 * (t - tprime) / (l ** 2) * np.exp(-(t - tprime) ** 2 / l ** 2)
-
-    def dkfu_dz(self, t, tprime, s, lengthscale):
-        l = lengthscale
-        return -np.exp(-(t - tprime) ** 2 / l ** 2) + np.exp(-(tprime - s) ** 2 / l ** 2) 
         
     def gradients_X(self, dL_dK, X, X2=None):
         #     """
         #     .. math::
         #         \\frac{\partial L}{\partial X} = \\frac{\partial L}{\partial K}\\frac{\partial K}{\partial X}
         #     """
-        if X2 is None:
-            X2 = X.copy()
-        dK_dz_term = np.zeros((X.shape[0], X2.shape[0], self.lengthscale.shape[0]))
-        k_term = np.zeros((X.shape[0], X2.shape[0], self.lengthscale.shape[0]))
-        for il, l in enumerate(self.lengthscale):
-            idx = il * 2
-            for i, x in enumerate(X):
-                for j, x2 in enumerate(X2):
-                    dK_dz_term[i, j, il] = self.dk_dz(input_type_1=x[-1], input_type_2=x2[-1], t=x[idx], tprime=x2[idx], s=x[idx+1], sprime=x2[idx+1], lengthscale=l)
-                    assert int(x[-1]) == 1  # we assume the first term (X) is always Z, X2 could be either X or Z
-                    k_term[i, j, il] = self.k(x, x2, idx, l)
-        # The result of the derivative should be
-        inducing_inputs_gradient = np.ones((X.shape[0], self.lengthscale.shape[0]))
-        for il,l in enumerate(self.lengthscale):
-            dK_dz = self.variance[0] * dK_dz_term[:,:,il]
-            for jl, l in enumerate(self.lengthscale): 
-                if jl != il:
-                    dK_dz *= k_term[:,:,jl]
-            tmp = dL_dK * dK_dz
-            inducing_inputs_gradient[:, il][:, None] = np.sum(tmp, axis=1)[:,None]
-        return inducing_inputs_gradient
+        pass
         
 # ------------------------------------------------------------------------------------------------------------------------------
 # MAKING CODE FASTER USING NUMBA
